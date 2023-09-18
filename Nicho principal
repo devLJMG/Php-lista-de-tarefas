@@ -1,0 +1,55 @@
+//Script de Lista de Tarefas Aprimorado:
+//php
+
+<?php
+session_start();
+require_once 'db.php'; // Incluindo o arquivo de configuração do banco de dados
+
+// Verificando se a requisição é do tipo POST
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Filtrando e validando a descrição da tarefa
+    $tarefa = filter_input(INPUT_POST, "tarefa", FILTER_SANITIZE_STRING);
+    $usuario_id = $_SESSION["usuario_id"];
+    
+    // Verificando se a descrição da tarefa é válida
+    if ($tarefa) {
+        // Inserindo a nova tarefa no banco de dados usando prepared statements
+        $sql = "INSERT INTO tarefas (descricao, usuario_id) VALUES (?, ?)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$tarefa, $usuario_id]);
+    }
+}
+
+// Verificando se uma tarefa foi concluída (marcada como concluída)
+if (isset($_GET["concluir"])) {
+    $tarefa_id = $_GET["concluir"];
+    // Atualizando o status da tarefa no banco de dados usando prepared statements
+    $sql = "UPDATE tarefas SET concluida = 1 WHERE id = ? AND usuario_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$tarefa_id, $usuario_id]);
+}
+
+// Selecionando todas as tarefas do usuário a partir do banco de dados
+$sql = "SELECT * FROM tarefas WHERE usuario_id = ?";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$usuario_id]);
+$tarefas = $stmt->fetchAll();
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lista de Tarefas</title>
+</head>
+<body>
+    <h1>Lista de Tarefas</h1>
+    <!-- Formulário para adicionar novas tarefas -->
+    <form method="POST">
+        <input type="text" name="tarefa" placeholder="Nova tarefa" required>
+        <button type="submit">Adicionar</button>
+    </form>
+    <ul>
+        <!-- Exibindo as tarefas e links para marcá-las como concluídas -->
+        <?php foreach ($tarefas as $tarefa) { ?>
+            <li><?= $tarefa["descricao"] ?> <a href="?concluir=<?= $tarefa["id"] ?>">Concluir</a></li>
+        <?php } ?>
